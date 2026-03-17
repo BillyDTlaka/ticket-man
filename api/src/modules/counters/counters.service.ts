@@ -7,7 +7,7 @@ export class CountersService {
   async findAll(branchId?: string) {
     return this.prisma.counter.findMany({
       where: branchId ? { branchId } : undefined,
-      include: { services: { include: { serviceCategory: true } }, sessions: { where: { endedAt: null }, include: { user: { omit: { passwordHash: true } } } } },
+      include: { services: { include: { serviceCategory: true } }, sessions: { where: { endedAt: null }, include: { user: { select: { id: true, email: true, firstName: true, lastName: true, role: true, branchId: true, isActive: true, createdAt: true, updatedAt: true } } } } },
       orderBy: { name: 'asc' },
     })
   }
