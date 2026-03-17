@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  AGENT
+  RECEPTION
+}
+
+enum TicketStatus {
+  CREATED
+  CALLED
+  IN_SERVICE
+  SERVED
+  NO_SHOW
+  CANCELLED
+  TRANSFERRED
+}
+
+model Branch {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           User[]
+  serviceCategories ServiceCategory[]
+  counters        Counter[]
+  tickets         Ticket[]
+  displayScreens  DisplayScreen[]
+}
+
+model ServiceCategory {
+  id          String   @id @default(cuid())
+  branchId    String
+  name        String
+  code        String
+  prefix      String   @default("A")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  counters CounterService[]
+  tickets  Ticket[]
+
+  @@unique([branchId, code])
+}
+
+model Counter {
+  id          String   @id @default(cuid())
+  branchId    String
+  name        String
+  code        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branch    Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  services  CounterService[]
+  sessions  AgentSession[]
+  tickets   Ticket[]
+
+  @@unique([branchId, code])
+}
+
+model CounterService {
+  counterId         String
+  serviceCategoryId String
+
+  counter         Counter         @relation(fields: [counterId], references: [id], onDelete: Cascade)
+  serviceCategory ServiceCategory @relation(fields: [serviceCategoryId], references: [id], onDelete: Cascade)
+
+  @@id([counterId, serviceCategoryId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole @default(AGENT)
+  branchId     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  branch   Branch?        @relation(fields: [branchId], references: [id])
+  sessions AgentSession[]
+}
+
+model AgentSession {
+  id        String    @id @default(cuid())
+  userId    String
+  counterId String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  user    User    @relation(fields: [userId], references: [id])
+  counter Counter @relation(fields: [counterId], references: [id])
+}
+
+model Ticket {
+  id                String       @id @default(cuid())
+  ticketNumber      String
+  branchId          String
+  serviceCategoryId String
+  counterId         String?
+  servedByUserId    String?
+  status            TicketStatus @default(CREATED)
+  issuedAt          DateTime     @default(now())
+  calledAt          DateTime?
+  startServiceAt    DateTime?
+  endServiceAt      DateTime?
+  waitingTimeConfig String       @default("issued_to_start")
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  branch          Branch          @relation(fields: [branchId], references: [id])
+  serviceCategory ServiceCategory @relation(fields: [serviceCategoryId], references: [id])
+  counter         Counter?        @relation(fields: [counterId], references: [id])
+  statusLogs      TicketStatusLog[]
+}
+
+model TicketStatusLog {
+  id        String       @id @default(cuid())
+  ticketId  String
+  status    TicketStatus
+  note      String?
+  userId    String?
+  createdAt DateTime     @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+model DisplayScreen {
+  id               String   @id @default(cuid())
+  branchId         String   @unique
+  title            String   @default("Now Serving")
+  showCalledCount  Int      @default(8)
+  primaryColor     String   @default("#1e40af")
+  logo             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
