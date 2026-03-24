@@ -1,4 +1,5 @@
 'use client'
+// v1.0.1
 import { useEffect, useState } from 'react'
 import { countersApi, servicesApi, ticketsApi } from '@/lib/api'
 import { Counter, ServiceCategory, Ticket } from '@/types'
