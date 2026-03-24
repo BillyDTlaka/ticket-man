@@ -63,5 +63,6 @@ export interface AuthUser {
   firstName: string
   lastName: string
   role: UserRole
+  branchId?: string
   branch?: Branch
 }
